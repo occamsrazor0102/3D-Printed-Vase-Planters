@@ -1,0 +1,10 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# GUI build artifacts and dependencies
+gui/node_modules/
+gui/.webpack/
+gui/out/
+gui/.eslintcache
+gui/*.tsbuildinfo
