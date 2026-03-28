@@ -3,6 +3,9 @@ import * as THREE from 'three';
 import { VaseParams } from '../vaseParams';
 import { buildVaseGeometry } from './vaseMesh';
 
+const FALLBACK_BG = '#0f172a';
+const FALLBACK_ERROR_COLOR = '#f87171';
+
 interface VasePreviewProps {
   params: VaseParams;
 }
@@ -40,8 +43,11 @@ const VasePreview: React.FC<VasePreviewProps> = ({ params }) => {
       renderer.setSize(container.clientWidth, container.clientHeight);
       container.appendChild(renderer.domElement);
     } catch (error) {
-      console.error('Failed to initialize WebGL renderer', error);
-      setInitError('WebGL not supported or failed to initialize. Please check your graphics drivers or enable WebGL.');
+      const message = error instanceof Error ? error.message : String(error);
+      console.error('Failed to initialize WebGL renderer:', message);
+      setInitError(
+        `WebGL not supported or failed to initialize (${message}). Please check your graphics drivers or enable WebGL.`,
+      );
       return;
     }
 
@@ -160,7 +166,7 @@ const VasePreview: React.FC<VasePreviewProps> = ({ params }) => {
         minHeight: 400,
         cursor: isDragging.current ? 'grabbing' : 'grab',
         position: 'relative',
-        background: '#0f172a',
+        background: FALLBACK_BG,
       }}
     >
       {initError && (
@@ -171,7 +177,7 @@ const VasePreview: React.FC<VasePreviewProps> = ({ params }) => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#f87171',
+            color: FALLBACK_ERROR_COLOR,
             fontSize: 14,
             textAlign: 'center',
             padding: 24,
