@@ -3,6 +3,9 @@ import * as THREE from 'three';
 import { VaseParams } from '../vaseParams';
 import { buildVaseGeometry } from './vaseMesh';
 
+const FALLBACK_BG = '#0f172a';
+const FALLBACK_ERROR_COLOR = '#f87171';
+
 interface VasePreviewProps {
   params: VaseParams;
 }
@@ -19,6 +22,7 @@ const VasePreview: React.FC<VasePreviewProps> = ({ params }) => {
   const isDragging = useRef(false);
   const lastMouse = useRef({ x: 0, y: 0 });
   const rotation = useRef({ x: -0.3, y: 0 });
+  const [initError, setInitError] = React.useState<string | null>(null);
 
   // Initialise the Three.js scene once
   useEffect(() => {
@@ -32,10 +36,20 @@ const VasePreview: React.FC<VasePreviewProps> = ({ params }) => {
     camera.position.set(0, 150, 350);
     camera.lookAt(0, 100, 0);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setSize(container.clientWidth, container.clientHeight);
-    container.appendChild(renderer.domElement);
+    let renderer: THREE.WebGLRenderer | null = null;
+    try {
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      container.appendChild(renderer.domElement);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error('Failed to initialize WebGL renderer:', message);
+      setInitError(
+        `WebGL not supported or failed to initialize (${message}). Please check your graphics drivers or enable WebGL.`,
+      );
+      return;
+    }
 
     // Lights
     const ambientLight = new THREE.AmbientLight(0x404060, 1.2);
@@ -127,8 +141,10 @@ const VasePreview: React.FC<VasePreviewProps> = ({ params }) => {
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
       renderer.domElement.removeEventListener('wheel', onWheel);
-      renderer.dispose();
-      container.removeChild(renderer.domElement);
+      if (renderer) {
+        renderer.dispose();
+        container.removeChild(renderer.domElement);
+      }
     };
   }, []); // Only run on mount
 
@@ -149,8 +165,29 @@ const VasePreview: React.FC<VasePreviewProps> = ({ params }) => {
         height: '100%',
         minHeight: 400,
         cursor: isDragging.current ? 'grabbing' : 'grab',
+        position: 'relative',
+        background: FALLBACK_BG,
       }}
-    />
+    >
+      {initError && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: FALLBACK_ERROR_COLOR,
+            fontSize: 14,
+            textAlign: 'center',
+            padding: 24,
+            background: 'rgba(0, 0, 0, 0.5)',
+          }}
+        >
+          {initError}
+        </div>
+      )}
+    </div>
   );
 };
 
