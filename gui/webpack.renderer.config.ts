@@ -16,4 +16,10 @@ export const rendererConfig: Configuration = {
   resolve: {
     extensions: ['.js', '.ts', '.jsx', '.tsx', '.css'],
   },
+  // Use relative asset paths so packaged file:// URLs resolve correctly
+  output: {
+    publicPath: './',
+    filename: 'main_window/index.js',
+    chunkFilename: 'main_window/[name].js',
+  },
 };
