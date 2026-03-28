@@ -33,15 +33,15 @@ const VasePreview: React.FC<VasePreviewProps> = ({ params }) => {
     camera.position.set(0, 150, 350);
     camera.lookAt(0, 100, 0);
 
-    let renderer: THREE.WebGLRenderer;
+    let renderer: THREE.WebGLRenderer | null = null;
     try {
       renderer = new THREE.WebGLRenderer({ antialias: true });
       renderer.setPixelRatio(window.devicePixelRatio);
       renderer.setSize(container.clientWidth, container.clientHeight);
       container.appendChild(renderer.domElement);
     } catch (error) {
-      console.error('Failed to initialise WebGL renderer', error);
-      setInitError('WebGL not supported or failed to initialise. Please check your graphics drivers or enable WebGL.');
+      console.error('Failed to initialize WebGL renderer', error);
+      setInitError('WebGL not supported or failed to initialize. Please check your graphics drivers or enable WebGL.');
       return;
     }
 
@@ -135,8 +135,10 @@ const VasePreview: React.FC<VasePreviewProps> = ({ params }) => {
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
       renderer.domElement.removeEventListener('wheel', onWheel);
-      renderer.dispose();
-      container.removeChild(renderer.domElement);
+      if (renderer) {
+        renderer.dispose();
+        container.removeChild(renderer.domElement);
+      }
     };
   }, []); // Only run on mount
 
