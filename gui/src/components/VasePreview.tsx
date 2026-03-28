@@ -19,6 +19,7 @@ const VasePreview: React.FC<VasePreviewProps> = ({ params }) => {
   const isDragging = useRef(false);
   const lastMouse = useRef({ x: 0, y: 0 });
   const rotation = useRef({ x: -0.3, y: 0 });
+  const [initError, setInitError] = React.useState<string | null>(null);
 
   // Initialise the Three.js scene once
   useEffect(() => {
@@ -32,10 +33,17 @@ const VasePreview: React.FC<VasePreviewProps> = ({ params }) => {
     camera.position.set(0, 150, 350);
     camera.lookAt(0, 100, 0);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setSize(container.clientWidth, container.clientHeight);
-    container.appendChild(renderer.domElement);
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      container.appendChild(renderer.domElement);
+    } catch (error) {
+      console.error('Failed to initialise WebGL renderer', error);
+      setInitError('WebGL not supported or failed to initialise. Please check your graphics drivers or enable WebGL.');
+      return;
+    }
 
     // Lights
     const ambientLight = new THREE.AmbientLight(0x404060, 1.2);
@@ -149,8 +157,29 @@ const VasePreview: React.FC<VasePreviewProps> = ({ params }) => {
         height: '100%',
         minHeight: 400,
         cursor: isDragging.current ? 'grabbing' : 'grab',
+        position: 'relative',
+        background: '#0f172a',
       }}
-    />
+    >
+      {initError && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#f87171',
+            fontSize: 14,
+            textAlign: 'center',
+            padding: 24,
+            background: 'rgba(0, 0, 0, 0.5)',
+          }}
+        >
+          {initError}
+        </div>
+      )}
+    </div>
   );
 };
 
