@@ -3,6 +3,12 @@
 Parametric vase/planter generator for 3D printing, featuring a desktop GUI
 built with Electron, React and TypeScript.
 
+## Live Demo
+
+Try the parametric vase designer in your browser on CodePen:
+
+**[▶ Open Live Demo](https://codepen.io/Dallas-Banks/pen/019d3369-6db3-76ed-a7c6-0457763c87fa)**
+
 ## Repository Structure
 
 - **`parametric_vase.scad`** — OpenSCAD parametric vase generator (the
