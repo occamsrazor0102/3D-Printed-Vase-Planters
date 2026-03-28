@@ -5,9 +5,13 @@ built with Electron, React and TypeScript.
 
 ## Live Demo
 
-Try the parametric vase designer in your browser on CodePen:
+Open `docs/index.html` in any modern browser for a **zero-install** web demo
+with real-time 3D preview, preset vases, a colour picker, wireframe toggle,
+auto-rotate, and OpenSCAD export — no build step needed.
 
-**[▶ Open Live Demo](https://codepen.io/Dallas-Banks/pen/019d3369-6db3-76ed-a7c6-0457763c87fa)**
+> **GitHub Pages:** If this repository has Pages enabled on the `main` branch
+> (serving from `/docs`), the demo is live at\
+> `https://<owner>.github.io/3D-Printed-Vase-Planters/`
 
 ## Repository Structure
 
@@ -15,6 +19,8 @@ Try the parametric vase designer in your browser on CodePen:
   authoritative geometry source).
 - **`gui/`** — Electron-based desktop application for visually designing vases
   and exporting OpenSCAD files.
+- **`docs/`** — Standalone web demo (single HTML file, Three.js via CDN) —
+  open `docs/index.html` in a browser or deploy to GitHub Pages.
 
 ## GUI — Parametric Vase Designer
 
