@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parametric Vase Designer</title>
+<style>
+/* ---- Reset & base ---- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; overflow: hidden; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background: #0f0f1a;
+  color: #d0d0e0;
+}
+
+/* ---- Header ---- */
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 20px; background: linear-gradient(135deg, #1a1040 0%, #0f3460 100%);
+  border-bottom: 1px solid #2a2a5e; flex-wrap: wrap; gap: 8px;
+}
+.header h1 { font-size: 20px; font-weight: 700; letter-spacing: 0.3px; }
+.header h1 span { opacity: 0.7; font-weight: 400; font-size: 14px; }
+.header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ---- Buttons ---- */
+.btn {
+  padding: 7px 16px; border: none; border-radius: 6px; cursor: pointer;
+  font-size: 13px; font-weight: 600; transition: all 0.15s ease;
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: #e94560; color: #fff; }
+.btn-primary:hover { background: #ff5a75; box-shadow: 0 0 12px rgba(233,69,96,0.4); }
+.btn-secondary { background: #1e2a4a; color: #c0c0e0; border: 1px solid #2a3a6a; }
+.btn-secondary:hover { background: #2a3a6a; }
+.btn-accent { background: #2ecc71; color: #fff; }
+.btn-accent:hover { background: #3ddb80; box-shadow: 0 0 12px rgba(46,204,113,0.4); }
+
+/* ---- Layout ---- */
+.app { display: flex; flex-direction: column; height: 100vh; }
+.body { display: flex; flex: 1; overflow: hidden; }
+.sidebar {
+  width: 330px; min-width: 280px; overflow-y: auto; background: #12122a;
+  border-right: 1px solid #2a2a4e; padding: 12px; flex-shrink: 0;
+}
+.preview { flex: 1; position: relative; overflow: hidden; background: #0a0a1a; }
+
+/* ---- Panel ---- */
+.panel-title {
+  font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+  margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #2a2a4e;
+  color: #8888aa;
+}
+.param-group { margin-bottom: 2px; }
+.group-header {
+  display: flex; align-items: center; gap: 8px; padding: 8px 6px; cursor: pointer;
+  border-radius: 6px; user-select: none; transition: background 0.1s;
+}
+.group-header:hover { background: #1e1e3e; }
+.group-toggle { font-size: 10px; width: 14px; color: #666; transition: transform 0.2s; }
+.group-toggle.open { transform: rotate(90deg); }
+.group-title { font-size: 13px; font-weight: 600; }
+.group-body { padding: 4px 6px 10px 22px; }
+.param-row { margin-bottom: 8px; }
+.param-label { display: block; font-size: 11px; color: #7777aa; margin-bottom: 3px; }
+.param-label-bool {
+  display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer;
+  padding: 4px 0;
+}
+.param-label-bool input[type="checkbox"] { accent-color: #e94560; width: 16px; height: 16px; }
+.param-control { display: flex; align-items: center; gap: 8px; }
+.param-control input[type="range"] { flex: 1; accent-color: #e94560; height: 4px; }
+.param-number {
+  width: 62px; padding: 4px 6px; border: 1px solid #2a2a4e; border-radius: 4px;
+  background: #0a0a1a; color: #d0d0e0; font-size: 12px; text-align: right;
+}
+.param-number:focus { border-color: #e94560; outline: none; }
+
+/* ---- Presets ---- */
+.preset-bar {
+  display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;
+}
+.preset-btn {
+  padding: 5px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;
+  border: 1px solid #2a2a4e; background: #1a1a3a; color: #aaaacc; cursor: pointer;
+  transition: all 0.15s;
+}
+.preset-btn:hover { background: #2a2a5e; border-color: #e94560; color: #fff; }
+.preset-btn.active { background: #e94560; color: #fff; border-color: #e94560; }
+
+/* ---- Color picker row ---- */
+.color-row {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
+}
+.color-row label { font-size: 11px; color: #7777aa; }
+.color-swatch {
+  width: 28px; height: 28px; border-radius: 50%; border: 2px solid #2a2a4e;
+  cursor: pointer; padding: 0; overflow: hidden;
+}
+.color-swatch input[type="color"] {
+  width: 36px; height: 36px; border: none; cursor: pointer;
+  margin: -4px; padding: 0; background: none;
+}
+
+/* ---- Overlay controls ---- */
+.overlay-controls {
+  position: absolute; bottom: 16px; left: 16px; display: flex; gap: 8px;
+  z-index: 10;
+}
+.overlay-btn {
+  padding: 6px 12px; border-radius: 16px; font-size: 11px; font-weight: 600;
+  border: 1px solid rgba(255,255,255,0.15); background: rgba(15,15,30,0.8);
+  color: #ccc; cursor: pointer; backdrop-filter: blur(8px); transition: all 0.15s;
+}
+.overlay-btn:hover { background: rgba(40,40,80,0.9); color: #fff; }
+.overlay-btn.active { background: rgba(233,69,96,0.8); color: #fff; border-color: rgba(233,69,96,0.6); }
+
+/* ---- Code modal ---- */
+.code-overlay {
+  position: absolute; inset: 0; background: rgba(0,0,0,0.85); z-index: 20;
+  display: flex; flex-direction: column; padding: 20px;
+  backdrop-filter: blur(4px);
+}
+.code-overlay pre {
+  flex: 1; overflow: auto; font-family: 'Fira Code', 'Consolas', monospace;
+  font-size: 13px; line-height: 1.6; color: #c9d1d9; white-space: pre-wrap;
+  background: #0d1117; border-radius: 8px; padding: 16px; border: 1px solid #2a2a4e;
+}
+.code-overlay .btn { align-self: flex-end; margin-bottom: 10px; }
+.hidden { display: none !important; }
+
+/* ---- Scrollbar ---- */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #555; }
+
+/* ---- Responsive ---- */
+@media (max-width: 768px) {
+  .body { flex-direction: column-reverse; }
+  .sidebar { width: 100%; max-height: 45vh; border-right: none; border-top: 1px solid #2a2a4e; }
+  .header h1 span { display: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Header -->
+  <div class="header">
+    <h1>🌸 Parametric Vase Designer <span>— 3D Preview</span></h1>
+    <div class="header-actions">
+      <button class="btn btn-secondary" id="btnReset" title="Reset to defaults">↺ Reset</button>
+      <button class="btn btn-secondary" id="btnCode" title="View OpenSCAD code">{ } Code</button>
+      <button class="btn btn-primary" id="btnExport" title="Download .scad file">⬇ Export .scad</button>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="body">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <!-- 3D Preview -->
+    <div class="preview" id="preview">
+      <div class="overlay-controls">
+        <button class="overlay-btn" id="btnAutoRotate" title="Toggle auto-rotate">⟳ Auto-rotate</button>
+        <button class="overlay-btn" id="btnWireframe" title="Toggle wireframe">◇ Wireframe</button>
+      </div>
+      <div class="code-overlay hidden" id="codeOverlay">
+        <button class="btn btn-secondary" id="btnCloseCode">✕ Close</button>
+        <pre id="codeContent"></pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+/* ====================================================================
+   PARAMETERS
+   ==================================================================== */
+
+const defaultParams = {
+  height: 200,
+  bottom_sides: 6,
+  mid_sides: 12,
+  top_sides: 8,
+  base_radius: 40,
+  top_radius: 20,
+  waist1_pos: 0.33,
+  waist1_scale: 0.7,
+  waist2_pos: 0.66,
+  waist2_scale: 1.2,
+  twist_degrees: 0,
+  segments: 80,
+  pattern_type: 0,
+  pattern_amplitude: 0.1,
+  pattern_freq_phi: 5,
+  pattern_freq_z: 5,
+  ellipse_ratio: 1.0,
+  wall_thickness: 2,
+  extra_mid_sides: 0,
+  extra_mid_pos: 0.75,
+  extra_waist_scale: 0,
+  extra_waist_pos: 0,
+};
+
+const paramMeta = [
+  { key:'height',            label:'Height (mm)',       min:10,  max:500, step:1,    group:'Shape',            type:'number' },
+  { key:'bottom_sides',      label:'Bottom Sides',      min:3,   max:64,  step:1,    group:'Shape',            type:'number' },
+  { key:'mid_sides',         label:'Middle Sides',      min:3,   max:64,  step:1,    group:'Shape',            type:'number' },
+  { key:'top_sides',         label:'Top Sides',         min:3,   max:64,  step:1,    group:'Shape',            type:'number' },
+  { key:'base_radius',       label:'Base Radius (mm)',  min:5,   max:200, step:1,    group:'Shape',            type:'number' },
+  { key:'top_radius',        label:'Top Radius (mm)',   min:5,   max:200, step:1,    group:'Shape',            type:'number' },
+  { key:'waist1_pos',        label:'Waist 1 Position',  min:0,   max:1,   step:0.01, group:'Waist',            type:'number' },
+  { key:'waist1_scale',      label:'Waist 1 Scale',     min:0.1, max:3,   step:0.01, group:'Waist',            type:'number' },
+  { key:'waist2_pos',        label:'Waist 2 Position',  min:0,   max:1,   step:0.01, group:'Waist',            type:'number' },
+  { key:'waist2_scale',      label:'Waist 2 Scale',     min:0.1, max:3,   step:0.01, group:'Waist',            type:'number' },
+  { key:'twist_degrees',     label:'Twist (degrees)',   min:-360,max:360, step:1,    group:'Twist & Segments', type:'number' },
+  { key:'segments',          label:'Segments',          min:8,   max:200, step:1,    group:'Twist & Segments', type:'number' },
+  { key:'pattern_type',      label:'Pattern (0=none 1=scallop 2=rib 3=mesh)', min:0, max:3, step:1, group:'Pattern', type:'number' },
+  { key:'pattern_amplitude', label:'Pattern Amplitude', min:0,   max:1,   step:0.01, group:'Pattern',          type:'number' },
+  { key:'pattern_freq_phi',  label:'Freq (circumference)', min:1, max:30, step:1,    group:'Pattern',          type:'number' },
+  { key:'pattern_freq_z',    label:'Freq (height)',     min:1,   max:30,  step:1,    group:'Pattern',          type:'number' },
+  { key:'ellipse_ratio',     label:'Ellipse Ratio',     min:0.5, max:3,   step:0.01, group:'Advanced',         type:'number' },
+  { key:'wall_thickness',    label:'Wall Thickness (mm)',min:0,   max:20,  step:0.5,  group:'Advanced',         type:'number' },
+  { key:'extra_mid_sides',   label:'Extra Mid Sides',   min:0,   max:64,  step:1,    group:'Extra Midpoint',   type:'number' },
+  { key:'extra_mid_pos',     label:'Extra Mid Position', min:0,  max:1,   step:0.01, group:'Extra Midpoint',   type:'number' },
+  { key:'extra_waist_scale', label:'Extra Waist Scale',  min:0,  max:3,   step:0.01, group:'Extra Waist',      type:'number' },
+  { key:'extra_waist_pos',   label:'Extra Waist Position',min:0, max:1,   step:0.01, group:'Extra Waist',      type:'number' },
+];
+
+const presets = [
+  { name: 'Classic',   params: { ...defaultParams } },
+  { name: 'Twisted',   params: { ...defaultParams, twist_degrees: 180, mid_sides: 24, top_sides: 24, bottom_sides: 24, pattern_type: 3, pattern_amplitude: 0.08, segments: 100 } },
+  { name: 'Orchid Pot', params: { ...defaultParams, height: 120, base_radius: 50, top_radius: 45, ellipse_ratio: 1.4, wall_thickness: 2, extra_waist_pos: 0.95, extra_waist_scale: 0.8, bottom_sides: 32, mid_sides: 32, top_sides: 32 } },
+  { name: 'Fluted',    params: { ...defaultParams, bottom_sides: 16, mid_sides: 16, top_sides: 16, pattern_type: 1, pattern_amplitude: 0.25, pattern_freq_phi: 12 } },
+  { name: 'Hourglass', params: { ...defaultParams, waist1_pos: 0.5, waist1_scale: 0.4, waist2_pos: 0.51, waist2_scale: 0.4, top_radius: 40, bottom_sides: 32, mid_sides: 32, top_sides: 32 } },
+  { name: 'Ribbed',    params: { ...defaultParams, pattern_type: 2, pattern_amplitude: 0.15, pattern_freq_z: 15, bottom_sides: 24, mid_sides: 24, top_sides: 24 } },
+  { name: 'Hexagonal', params: { ...defaultParams, bottom_sides: 6, mid_sides: 6, top_sides: 6, height: 150, base_radius: 50, top_radius: 50, waist1_scale: 1, waist2_scale: 1 } },
+];
+
+/* ====================================================================
+   STATE
+   ==================================================================== */
+
+let params = { ...defaultParams };
+let vaseColor = '#e07040';
+let autoRotate = false;
+let wireframe = false;
+let activePreset = 'Classic';
+
+/* ====================================================================
+   GEOMETRY
+   ==================================================================== */
+
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+function sidesAt(t, bs, ms, ts, ems, emp) {
+  if (ems > 0 && emp > 0 && emp < 1) {
+    if (t <= 0.5) return Math.floor(lerp(bs, ms, t / 0.5));
+    if (t <= emp) return Math.floor(lerp(ms, ems, (t - 0.5) / (emp - 0.5)));
+    return Math.floor(lerp(ems, ts, (t - emp) / (1 - emp)));
+  }
+  if (t <= 0.5) return Math.floor(lerp(bs, ms, t / 0.5));
+  return Math.floor(lerp(ms, ts, (t - 0.5) / 0.5));
+}
+
+function radiusAt(t, br, tr, w1p, w1s, w2p, w2s, ews, ewp) {
+  const useExtra = ews > 0 && ewp > 0 && ewp < 1;
+  if (t <= w1p) return lerp(br, br * w1s, t / w1p);
+  if (t <= w2p) return lerp(br * w1s, br * w2s, (t - w1p) / (w2p - w1p));
+  if (useExtra && t <= ewp) return lerp(br * w2s, br * ews, (t - w2p) / (ewp - w2p));
+  if (useExtra) return lerp(br * ews, tr, (t - ewp) / (1 - ewp));
+  return lerp(br * w2s, tr, (t - w2p) / (1 - w2p));
+}
+
+function patternFactor(pt, amp, fphi, fz, phi, t) {
+  if (pt === 0) return 1;
+  if (pt === 1) return 1 + amp * Math.sin(2 * Math.PI * fphi * phi);
+  if (pt === 2) return 1 + amp * Math.sin(2 * Math.PI * fz * t);
+  return 1 + amp * Math.sin(2 * Math.PI * fphi * phi) * Math.sin(2 * Math.PI * fz * t);
+}
+
+const MAX_PREVIEW_SEGMENTS = 120;
+
+function buildVaseGeometry(p) {
+  const seg = Math.min(p.segments, MAX_PREVIEW_SEGMENTS);
+  const maxSides = Math.max(p.bottom_sides, p.mid_sides, p.top_sides, p.extra_mid_sides, 3);
+  const verts = [];
+  const idx = [];
+
+  for (let i = 0; i <= seg; i++) {
+    const t = i / seg;
+    const y = t * p.height;
+    const sides = sidesAt(t, p.bottom_sides, p.mid_sides, p.top_sides, p.extra_mid_sides, p.extra_mid_pos);
+    const r = radiusAt(t, p.base_radius, p.top_radius, p.waist1_pos, p.waist1_scale, p.waist2_pos, p.waist2_scale, p.extra_waist_scale, p.extra_waist_pos);
+    const tw = (p.twist_degrees * t * Math.PI) / 180;
+    for (let j = 0; j < maxSides; j++) {
+      const phi = j / maxSides;
+      const ej = (j / maxSides) * sides;
+      const angle = (ej / sides) * 2 * Math.PI + tw;
+      const pf = patternFactor(p.pattern_type, p.pattern_amplitude, p.pattern_freq_phi, p.pattern_freq_z, phi, t);
+      verts.push(r * pf * p.ellipse_ratio * Math.cos(angle), y, r * pf * Math.sin(angle));
+    }
+  }
+
+  for (let i = 0; i < seg; i++) {
+    for (let j = 0; j < maxSides; j++) {
+      const c = i * maxSides + j, n = i * maxSides + ((j+1)%maxSides);
+      const cu = (i+1)*maxSides+j, nu = (i+1)*maxSides+((j+1)%maxSides);
+      idx.push(c, n, cu);
+      idx.push(n, nu, cu);
+    }
+  }
+
+  if (p.wall_thickness > 0) {
+    const ovc = verts.length / 3;
+    for (let i = 0; i <= seg; i++) {
+      const t = i / seg;
+      const y = t * p.height;
+      const sides = sidesAt(t, p.bottom_sides, p.mid_sides, p.top_sides, p.extra_mid_sides, p.extra_mid_pos);
+      const r = radiusAt(t, p.base_radius, p.top_radius, p.waist1_pos, p.waist1_scale, p.waist2_pos, p.waist2_scale, p.extra_waist_scale, p.extra_waist_pos);
+      const ir = Math.max(r - p.wall_thickness, 1);
+      const tw = (p.twist_degrees * t * Math.PI) / 180;
+      for (let j = 0; j < maxSides; j++) {
+        const phi = j / maxSides;
+        const ej = (j / maxSides) * sides;
+        const angle = (ej / sides) * 2 * Math.PI + tw;
+        const pf = patternFactor(p.pattern_type, p.pattern_amplitude, p.pattern_freq_phi, p.pattern_freq_z, phi, t);
+        verts.push(ir * pf * p.ellipse_ratio * Math.cos(angle), y, ir * pf * Math.sin(angle));
+      }
+    }
+    for (let i = 0; i < seg; i++) {
+      for (let j = 0; j < maxSides; j++) {
+        const c = ovc+i*maxSides+j, n = ovc+i*maxSides+((j+1)%maxSides);
+        const cu = ovc+(i+1)*maxSides+j, nu = ovc+(i+1)*maxSides+((j+1)%maxSides);
+        idx.push(c, cu, n);
+        idx.push(n, cu, nu);
+      }
+    }
+    const tos = seg * maxSides, tis = ovc + seg * maxSides;
+    for (let j = 0; j < maxSides; j++) {
+      const o1=tos+j, o2=tos+((j+1)%maxSides), i1=tis+j, i2=tis+((j+1)%maxSides);
+      idx.push(o1, o2, i1);
+      idx.push(o2, i2, i1);
+    }
+  }
+
+  const bc = verts.length / 3;
+  verts.push(0, 0, 0);
+  for (let j = 0; j < maxSides; j++) idx.push(bc, (j+1)%maxSides, j);
+
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+  geo.setIndex(idx);
+  geo.computeVertexNormals();
+  return geo;
+}
+
+/* ====================================================================
+   SCAD EXPORT
+   ==================================================================== */
+
+function generateScad(p) {
+  return `// Generated by Parametric Vase Designer
+// Open this file in OpenSCAD alongside parametric_vase.scad to render.
+
+use <parametric_vase.scad>
+
+vase(height=${p.height},
+     bottom_sides=${p.bottom_sides},
+     mid_sides=${p.mid_sides},
+     top_sides=${p.top_sides},
+     base_radius=${p.base_radius},
+     top_radius=${p.top_radius},
+     waist1_pos=${p.waist1_pos},
+     waist1_scale=${p.waist1_scale},
+     waist2_pos=${p.waist2_pos},
+     waist2_scale=${p.waist2_scale},
+     twist_degrees=${p.twist_degrees},
+     segments=${p.segments},
+     pattern_type=${p.pattern_type},
+     pattern_amplitude=${p.pattern_amplitude},
+     pattern_freq_phi=${p.pattern_freq_phi},
+     pattern_freq_z=${p.pattern_freq_z},
+     ellipse_ratio=${p.ellipse_ratio},
+     wall_thickness=${p.wall_thickness},
+     extra_mid_sides=${p.extra_mid_sides},
+     extra_mid_pos=${p.extra_mid_pos},
+     extra_waist_scale=${p.extra_waist_scale},
+     extra_waist_pos=${p.extra_waist_pos});
+`;
+}
+
+/* ====================================================================
+   THREE.JS SCENE
+   ==================================================================== */
+
+const container = document.getElementById('preview');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a0a1a);
+
+// Subtle fog
+scene.fog = new THREE.FogExp2(0x0a0a1a, 0.0008);
+
+const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 5000);
+camera.position.set(0, 150, 350);
+camera.lookAt(0, 100, 0);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(container.clientWidth, container.clientHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+container.insertBefore(renderer.domElement, container.firstChild);
+
+// Lights
+const ambient = new THREE.AmbientLight(0x404060, 1.0);
+scene.add(ambient);
+
+const keyLight = new THREE.DirectionalLight(0xffffff, 1.2);
+keyLight.position.set(200, 400, 200);
+keyLight.castShadow = true;
+scene.add(keyLight);
+
+const fillLight = new THREE.DirectionalLight(0x6080ff, 0.4);
+fillLight.position.set(-200, 100, -200);
+scene.add(fillLight);
+
+const rimLight = new THREE.DirectionalLight(0xff8060, 0.3);
+rimLight.position.set(0, 50, -300);
+scene.add(rimLight);
+
+// Grid
+const grid = new THREE.GridHelper(400, 20, 0x222244, 0x1a1a33);
+grid.material.transparent = true;
+grid.material.opacity = 0.5;
+scene.add(grid);
+
+// Vase mesh
+const material = new THREE.MeshPhongMaterial({
+  color: new THREE.Color(vaseColor),
+  specular: 0x444444,
+  shininess: 40,
+  side: THREE.DoubleSide,
+});
+let mesh = new THREE.Mesh(buildVaseGeometry(params), material);
+
+const pivot = new THREE.Group();
+pivot.add(mesh);
+scene.add(pivot);
+
+// Rotation state
+let isDragging = false;
+let lastMouse = { x: 0, y: 0 };
+let rotation = { x: -0.3, y: 0 };
+const AUTO_ROTATE_SPEED = 0.005;
+
+function animate() {
+  if (autoRotate && !isDragging) rotation.y += AUTO_ROTATE_SPEED;
+  pivot.rotation.x = rotation.x;
+  pivot.rotation.y = rotation.y;
+  renderer.render(scene, camera);
+  requestAnimationFrame(animate);
+}
+animate();
+
+// Mouse interactions
+renderer.domElement.addEventListener('pointerdown', e => {
+  isDragging = true;
+  lastMouse = { x: e.clientX, y: e.clientY };
+  renderer.domElement.setPointerCapture(e.pointerId);
+});
+window.addEventListener('pointermove', e => {
+  if (!isDragging) return;
+  rotation.y += (e.clientX - lastMouse.x) * 0.01;
+  rotation.x += (e.clientY - lastMouse.y) * 0.01;
+  lastMouse = { x: e.clientX, y: e.clientY };
+});
+window.addEventListener('pointerup', () => { isDragging = false; });
+
+renderer.domElement.addEventListener('wheel', e => {
+  e.preventDefault();
+  camera.position.z = Math.max(50, Math.min(1000, camera.position.z + e.deltaY * 0.5));
+}, { passive: false });
+
+window.addEventListener('resize', () => {
+  camera.aspect = container.clientWidth / container.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(container.clientWidth, container.clientHeight);
+});
+
+/* ====================================================================
+   UPDATE MESH
+   ==================================================================== */
+
+function rebuildMesh() {
+  const oldGeo = mesh.geometry;
+  mesh.geometry = buildVaseGeometry(params);
+  oldGeo.dispose();
+}
+
+/* ====================================================================
+   UI — SIDEBAR
+   ==================================================================== */
+
+function buildSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  sidebar.innerHTML = '';
+
+  // Presets
+  const presetTitle = document.createElement('div');
+  presetTitle.className = 'panel-title';
+  presetTitle.textContent = 'Presets';
+  sidebar.appendChild(presetTitle);
+
+  const presetBar = document.createElement('div');
+  presetBar.className = 'preset-bar';
+  presets.forEach(pr => {
+    const btn = document.createElement('button');
+    btn.className = 'preset-btn' + (activePreset === pr.name ? ' active' : '');
+    btn.textContent = pr.name;
+    btn.addEventListener('click', () => {
+      params = { ...pr.params };
+      activePreset = pr.name;
+      rebuildMesh();
+      buildSidebar();
+    });
+    presetBar.appendChild(btn);
+  });
+  sidebar.appendChild(presetBar);
+
+  // Color picker
+  const colorRow = document.createElement('div');
+  colorRow.className = 'color-row';
+  const colorLabel = document.createElement('label');
+  colorLabel.textContent = 'Vase Color';
+  const colorSwatch = document.createElement('div');
+  colorSwatch.className = 'color-swatch';
+  const colorInput = document.createElement('input');
+  colorInput.type = 'color';
+  colorInput.value = vaseColor;
+  colorInput.addEventListener('input', e => {
+    vaseColor = e.target.value;
+    material.color.set(vaseColor);
+  });
+  colorSwatch.appendChild(colorInput);
+  colorRow.appendChild(colorLabel);
+  colorRow.appendChild(colorSwatch);
+  sidebar.appendChild(colorRow);
+
+  // Parameter groups
+  const paramTitle = document.createElement('div');
+  paramTitle.className = 'panel-title';
+  paramTitle.textContent = 'Parameters';
+  sidebar.appendChild(paramTitle);
+
+  const groups = {};
+  paramMeta.forEach(m => {
+    if (!groups[m.group]) groups[m.group] = [];
+    groups[m.group].push(m);
+  });
+
+  // Track collapsed state (persisted across rebuilds)
+  if (!buildSidebar._collapsed) buildSidebar._collapsed = {};
+
+  Object.entries(groups).forEach(([group, metas]) => {
+    const div = document.createElement('div');
+    div.className = 'param-group';
+
+    const header = document.createElement('div');
+    header.className = 'group-header';
+    const toggle = document.createElement('span');
+    const isCollapsed = buildSidebar._collapsed[group] || false;
+    toggle.className = 'group-toggle' + (isCollapsed ? '' : ' open');
+    toggle.textContent = '▶';
+    const title = document.createElement('span');
+    title.className = 'group-title';
+    title.textContent = group;
+    header.appendChild(toggle);
+    header.appendChild(title);
+    div.appendChild(header);
+
+    const body = document.createElement('div');
+    body.className = 'group-body';
+    if (isCollapsed) body.style.display = 'none';
+
+    header.addEventListener('click', () => {
+      buildSidebar._collapsed[group] = !buildSidebar._collapsed[group];
+      body.style.display = buildSidebar._collapsed[group] ? 'none' : '';
+      toggle.className = 'group-toggle' + (buildSidebar._collapsed[group] ? '' : ' open');
+    });
+
+    metas.forEach(meta => {
+      const row = document.createElement('div');
+      row.className = 'param-row';
+
+      if (meta.type === 'boolean') {
+        const lbl = document.createElement('label');
+        lbl.className = 'param-label-bool';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = !!params[meta.key];
+        cb.addEventListener('change', () => {
+          params[meta.key] = cb.checked;
+          activePreset = '';
+          rebuildMesh();
+          updatePresetButtons();
+        });
+        lbl.appendChild(cb);
+        lbl.appendChild(document.createTextNode(meta.label));
+        row.appendChild(lbl);
+      } else {
+        const lbl = document.createElement('div');
+        lbl.className = 'param-label';
+        lbl.textContent = meta.label;
+        row.appendChild(lbl);
+
+        const ctrl = document.createElement('div');
+        ctrl.className = 'param-control';
+
+        const range = document.createElement('input');
+        range.type = 'range';
+        range.min = meta.min;
+        range.max = meta.max;
+        range.step = meta.step;
+        range.value = params[meta.key];
+
+        const num = document.createElement('input');
+        num.type = 'number';
+        num.className = 'param-number';
+        num.min = meta.min;
+        num.max = meta.max;
+        num.step = meta.step;
+        num.value = params[meta.key];
+
+        const sync = val => {
+          const v = parseFloat(val);
+          if (isNaN(v)) return;
+          params[meta.key] = v;
+          activePreset = '';
+          rebuildMesh();
+          updatePresetButtons();
+        };
+
+        range.addEventListener('input', () => { num.value = range.value; sync(range.value); });
+        num.addEventListener('input', () => { range.value = num.value; sync(num.value); });
+
+        ctrl.appendChild(range);
+        ctrl.appendChild(num);
+        row.appendChild(ctrl);
+      }
+
+      body.appendChild(row);
+    });
+
+    div.appendChild(body);
+    sidebar.appendChild(div);
+  });
+}
+
+function updatePresetButtons() {
+  document.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.textContent === activePreset);
+  });
+}
+
+buildSidebar();
+
+/* ====================================================================
+   HEADER BUTTONS
+   ==================================================================== */
+
+document.getElementById('btnReset').addEventListener('click', () => {
+  params = { ...defaultParams };
+  activePreset = 'Classic';
+  rebuildMesh();
+  buildSidebar();
+});
+
+document.getElementById('btnExport').addEventListener('click', () => {
+  const code = generateScad(params);
+  const blob = new Blob([code], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'custom_vase.scad';
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById('btnCode').addEventListener('click', () => {
+  document.getElementById('codeContent').textContent = generateScad(params);
+  document.getElementById('codeOverlay').classList.remove('hidden');
+});
+document.getElementById('btnCloseCode').addEventListener('click', () => {
+  document.getElementById('codeOverlay').classList.add('hidden');
+});
+
+/* ====================================================================
+   OVERLAY BUTTONS
+   ==================================================================== */
+
+const btnAuto = document.getElementById('btnAutoRotate');
+btnAuto.addEventListener('click', () => {
+  autoRotate = !autoRotate;
+  btnAuto.classList.toggle('active', autoRotate);
+});
+
+const btnWire = document.getElementById('btnWireframe');
+btnWire.addEventListener('click', () => {
+  wireframe = !wireframe;
+  material.wireframe = wireframe;
+  btnWire.classList.toggle('active', wireframe);
+});
+</script>
+</body>
+</html>
